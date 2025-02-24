@@ -40,3 +40,14 @@ with DAG(
         except Exception as e:
             logger.error("An error has occurred with connecting to AWS", e)
 
+    @task
+    def load_files(bucket_name, file_name, aws_client):
+        try:
+            aws_client.download_file(
+                bucket_name,
+                file_name,
+                f"resources/{file_name}"
+            )
+            logger.info("Files downloaded")
+        except Exception as e:
+            logger.error("An error has occurred with downloading files", e)
