@@ -41,7 +41,7 @@ with DAG(
             logger.error("An error has occurred with connecting to AWS", e)
 
     @task
-    def load_files(bucket_name, file_name, aws_client):
+    def download_files(bucket_name, file_name, aws_client):
         try:
             resources = os.path.dirname(os.path.abspath(__name__))
             file_path = os.path.join(resources, file_name)
