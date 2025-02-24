@@ -43,11 +43,17 @@ with DAG(
     @task
     def load_files(bucket_name, file_name, aws_client):
         try:
-            aws_client.download_file(
-                bucket_name,
-                file_name,
-                f"resources/{file_name}"
-            )
-            logger.info("Files downloaded")
+            resources = os.path.dirname(os.path.abspath(__name__))
+            file_path = os.path.join(resources, file_name)
+
+            if os.path.exists(file_path):
+                aws_client.download_file(
+                    bucket_name,
+                    file_name,
+                    file_path
+                )
+                logger.info("Files downloaded")
+            else:
+                logger.warning("File downloading skipped, file already exists.")
         except Exception as e:
             logger.error("An error has occurred with downloading files", e)
