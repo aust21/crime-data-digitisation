@@ -13,12 +13,8 @@ s3 = boto3.client(
             aws_access_key_id=AWS_ACCESS_KEY_ID,
             aws_secret_access_key=AWS_SECRET_ACCESS_KEY
         )
+bucket_name = "crime-files-bucket"
 
-def read_files(bucket_name, file_name, target_name):
-    s3.download_file(bucket_name, file_name, file_name)
-    print("file downloaded")
-
-read_files(
-    "crime-files-bucket",
-    "crime_incidents_by_category.csv",
-    "crime_incidents_by_category.csv")
+response = s3.list_objects_v2(Bucket=bucket_name)
+for obj in response.get("Contents", []):
+    print(obj["Key"])  # List all filenames
