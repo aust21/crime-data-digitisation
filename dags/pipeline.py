@@ -26,24 +26,54 @@ with DAG(
     schedule_interval="@daily",
     catchup=False
 ) as dag:
+
     @task
     def extract_data(bucket_name, file_name):
         try:
-            aws_client = S3Hook(aws_conn_id="awsconn")
+            aws_client = S3Hook(aws_conn_id="conn", region_name="af-south-1")
+
+            # Get detailed connection info for debugging
+            conn = aws_client.get_connection(aws_client.aws_conn_id)
+            logger.info(f"Connection region: {aws_client.region_name}")
+
+            # Get the S3 client
+            s3_client = aws_client.get_conn()
+
+            # List buckets to verify credentials
+            response = s3_client.list_buckets()
+            buckets = [bucket['Name'] for bucket in response['Buckets']]
+            logger.info(f"Available buckets: {buckets}")
+
+            # Check if our bucket exists in the list
+            if bucket_name in buckets:
+                logger.info(f"Bucket {bucket_name} found")
+            else:
+                logger.warning(
+                    f"Bucket {bucket_name} NOT found in available buckets"
+                    )
+
+            # List objects with full response for debugging
+            response = s3_client.list_objects_v2(Bucket=bucket_name)
+
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    logger.info(
+                        f"Object key: {obj['Key']}, Size: {obj['Size']}"
+                        )
+
             resources = os.path.dirname(os.path.abspath(__file__))
             file_path = os.path.join(resources, file_name)
 
+            logger.info(f"Attempting to download {file_name} to {file_path}")
+
             if not os.path.exists(file_path):
-                # aws_client.download_file(
-                #     bucket_name,
-                #     file_name,
-                #     file_path
-                # )
-                logger.info("Files downloaded")
+                s3_client.download_file(bucket_name, file_name, file_path)
+                logger.info("File downloaded successfully")
             else:
                 logger.warning("File downloading skipped, file already exists.")
+
         except Exception as e:
-            logger.error(f"An error has occurred with downloading files: {str(e)}", exc_info=True)
+            logger.error(f"An error has occurred: {str(e)}", exc_info=True)
 
 
     @task
