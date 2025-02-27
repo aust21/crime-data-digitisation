@@ -39,34 +39,8 @@ with DAG(
             # Get the S3 client
             s3_client = aws_client.get_conn()
 
-            # List buckets to verify credentials
-            response = s3_client.list_buckets()
-            buckets = [bucket['Name'] for bucket in response['Buckets']]
-            logger.info(f"Available buckets: {buckets}")
-
-            # Check if our bucket exists in the list
-            if bucket_name in buckets:
-                logger.info(f"Bucket {bucket_name} found")
-            else:
-                logger.warning(
-                    f"Bucket {bucket_name} NOT found in available buckets"
-                    )
-
-            # List objects with full response for debugging
-            response = s3_client.list_objects_v2(Bucket=bucket_name)
-
-            if 'Contents' in response:
-                for obj in response['Contents']:
-                    logger.info(
-                        f"Object key: {obj['Key']}, Size: {obj['Size']}"
-                        )
-
             data_dir = "/usr/local/airflow/data"
-
-            # Make sure directory exists
             os.makedirs(data_dir, exist_ok=True)
-
-            # Use this path for downloads
             file_path = os.path.join(data_dir, file_name)
 
             logger.info(f"Attempting to download {file_name} to {file_path}")
