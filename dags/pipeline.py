@@ -61,8 +61,13 @@ with DAG(
                         f"Object key: {obj['Key']}, Size: {obj['Size']}"
                         )
 
-            resources = os.path.dirname(os.path.abspath(__file__))
-            file_path = os.path.join(resources, file_name)
+            data_dir = "/usr/local/airflow/data"
+
+            # Make sure directory exists
+            os.makedirs(data_dir, exist_ok=True)
+
+            # Use this path for downloads
+            file_path = os.path.join(data_dir, file_name)
 
             logger.info(f"Attempting to download {file_name} to {file_path}")
 
