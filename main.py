@@ -1,5 +1,6 @@
 import boto3, os
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID")
@@ -15,6 +16,39 @@ s3 = boto3.client(
         )
 bucket_name = "crime-files-bucket"
 
-response = s3.list_objects_v2(Bucket=bucket_name)
-for obj in response.get("Contents", []):
-    print(obj["Key"])  # List all filenames
+df = pd.read_csv("crime_incidents_by_category.csv")
+print(df.groupby("Crime Category").nunique())
+
+# MASTER_PASSWORD=os.getenv("MASTER_PASSWORD")MASTER_PASSWORD=os.getenv("MASTER_PASSWORD")
+# MASTER_USERNAME=os.getenv("MASTER_USERNAME")
+# MASTER_ENDPOINT=os.getenv("MASTER_ENDPOINT")
+# MASTER_PORT=os.getenv("MASTER_PORT")
+# MASTER_DBNAME=os.getenv("MASTER_DBNAME")
+#
+# conn = psycopg2.connect(
+#     host=MASTER_ENDPOINT,
+#     database=MASTER_DBNAME,
+#     user=MASTER_USERNAME,
+#     password=MASTER_PASSWORD
+#     )
+#
+# cur = conn.cursor()
+# cur.execute("SELECT version()")
+# db_version = cur.fetchone()
+# print(db_version)
+# MASTER_USERNAME=os.getenv("MASTER_USERNAME")
+# MASTER_ENDPOINT=os.getenv("MASTER_ENDPOINT")
+# MASTER_PORT=os.getenv("MASTER_PORT")
+# MASTER_DBNAME=os.getenv("MASTER_DBNAME")
+#
+# conn = psycopg2.connect(
+#     host=MASTER_ENDPOINT,
+#     database=MASTER_DBNAME,
+#     user=MASTER_USERNAME,
+#     password=MASTER_PASSWORD
+#     )
+#
+# cur = conn.cursor()
+# cur.execute("SELECT version()")
+# db_version = cur.fetchone()
+# print(db_version)

@@ -28,18 +28,10 @@ with DAG(
 ) as dag:
 
     @task
-    def extract_data(bucket_name, file_name):
+    def extract_data(bucket_name, file_name, data_dir):
         try:
             aws_client = S3Hook(aws_conn_id="conn", region_name="af-south-1")
-
-            # Get detailed connection info for debugging
-            conn = aws_client.get_connection(aws_client.aws_conn_id)
-            logger.info(f"Connection region: {aws_client.region_name}")
-
-            # Get the S3 client
             s3_client = aws_client.get_conn()
-
-            data_dir = "/usr/local/airflow/data"
             os.makedirs(data_dir, exist_ok=True)
             file_path = os.path.join(data_dir, file_name)
 
@@ -56,10 +48,20 @@ with DAG(
 
 
     @task
-    def transform():
-        pass
+    def transform(data_dir, file_name):
+        true_path = os.path.join(data_dir, file_name)
+        logger.info(f"Path to downloaded file: {true_path}")
+        df = pd.read_csv(true_path)
+        new_df = df.groupby("Crime Category").nunique()
+        print(new_df)
+        return new_df
 
 
+
+    data_dir = "/usr/local/airflow/data"
+    file_name = "crime_incidents_by_category.csv"
     extract_data(
         "crime-files-bucket",
-        "crime_incidents_by_category.csv")
+        file_name, data_dir)
+
+    transform(data_dir, file_name)
