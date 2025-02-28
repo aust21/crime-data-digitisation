@@ -1,18 +1,18 @@
 # CrimeStats Digitization
 
-A project to simulate the digitization of South African crime statistics, effectively storing them on secure cloud systems.
+A project to simulate the digitization of South African crime statistics, effectively storing them on secure cloud systems (AWS).
 
 # Features
 
-- Data Ingestion: Reads crime data from flat files (CSV, Excel, etc.).
-- Data Storage: Loads processed data into a PostgreSQL database.
+- Data Ingestion: Reads crime data from a flat file stored in an AWS bucket.
+- Data Storage: Loads processed data into a PostgreSQL database on AWS.
 - Real-Time Processing: Fast access to frequently queried records using Redis caching.
 
 # Tech Stack
 
 - Python: Core programming language for data processing and pipeline management.
 - PostgreSQL: Relational database to store digitized crime data.
-- Redis: Used for caching and real-time data access.
+- Airflow: For scheduling and automating the pipeline
 
 # Getting Started
 
@@ -21,8 +21,6 @@ A project to simulate the digitization of South African crime statistics, effect
 Make sure you have the following installed:
 
 - Python 3.x
-- PostgreSQL
-- Redis server
 
 ### Installation
 
