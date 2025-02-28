@@ -1,15 +1,13 @@
-import json, requests, os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import json, requests, os, boto3
 from airflow import DAG
 from airflow.decorators import task
+from airflow.exceptions import AirflowException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 import pandas as pd
 from airflow.utils.log.logging_mixin import LoggingMixin
+from airflow.models import Variable
 from dotenv import load_dotenv
-from aggregated_data_model import CrimeByCategory
-
 
 load_dotenv()
 AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID")
@@ -52,45 +50,13 @@ with DAG(
     @task
     def transform(data_dir, file_name):
         true_path = os.path.join(data_dir, file_name)
+        logger.info(f"Path to downloaded file: {true_path}")
         df = pd.read_csv(true_path)
         new_df = df.groupby("Crime Category").nunique()
+        print(new_df)
         return new_df
 
-    @task
-    def load(data):
-        conf = {
-            'host': os.getenv("MASTER_ENDPOINT"),
-            'port': os.getenv("MASTER_PORT"),
-            'database': os.getenv("MASTER_DBNAME"),
-            'user': os.getenv("MASTER_USERNAME"),
-            'password': os.getenv("MASTER_PASSWORD")
-        }
 
-        try:
-            engine = create_engine(
-                "postgresql://{user}:{password}@{host}:{port}/{database}".format(
-                    **conf
-                    )
-                )
-            logger.info("SQLachemy connection successful")
-
-            session = sessionmaker(bind=engine)
-            session_obj = session()
-            for _, row in data.iterrows():
-                crime_entry = CrimeByCategory(
-                    category = row.name,
-                    geography = int(row["Geography"]),
-                    financial_year = int(row["Financial Year"]),
-                    entry_count = int(row["Count"])
-                )
-
-                session_obj.add(crime_entry)
-            session_obj.commit()
-            session_obj.close()
-            logger.info("Data written to postgres")
-        except Exception as e:
-            logger.error(f"Failed to create sqlachemy instance {e}",
-                         exc_info=True)
 
     data_dir = "/usr/local/airflow/data"
     file_name = "crime_incidents_by_category.csv"
@@ -98,5 +64,4 @@ with DAG(
         "crime-files-bucket",
         file_name, data_dir)
 
-    data = transform(data_dir, file_name)
-    load(data)
+    transform(data_dir, file_name)
