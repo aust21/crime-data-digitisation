@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import boto3, os
 from sqlalchemy import  create_engine
 from sqlalchemy.orm import sessionmaker
 
-# load_dotenv()
+load_dotenv()
 
 original_file = pd.read_csv("resources/crime_incidents_by_category.csv")
 
@@ -61,6 +61,31 @@ def fetch_aggrigated_by_cat():
     # st.write(data)
     return data
 
+page_bg_img = """
+<style>
+[data-testid="stAppViewContainer"] {
+background-color: #3f3b45;
+}
+[data-testid="stHeader"] {
+background-color: #3f3b45;
+}
+[data-testid="stToolbar"] {
+background-color: #3f3b45;
+}
+[data-testid="stSidebar"] {
+background-color: #f0f2f6;
+}
+[data-testid="stDataFrame"] {
+    background-color: #3f3b45;  /* Light blue background */
+}
+.main {
+background-color: #f0f2f6;
+}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+
 # Centered title
 st.markdown(
     "<h1 style='text-align: center; color: white;'>Crime Stats</h1>",
@@ -79,5 +104,5 @@ if option == "Original Stats":
 elif option == "Aggregated by category":
     df_result = fetch_aggrigated_by_cat()
 
-# Full-width DataFrame
+# DataFrame
 st.dataframe(df_result, use_container_width=True)
