@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import boto3, os
 from sqlalchemy import  create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+# load_dotenv()
 
 original_file = pd.read_csv("resources/crime_incidents_by_category.csv")
 
