@@ -1,4 +1,4 @@
-import json, requests, os
+import json, requests, os, sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from airflow import DAG
@@ -8,6 +8,9 @@ from airflow.utils.dates import days_ago
 import pandas as pd
 from airflow.utils.log.logging_mixin import LoggingMixin
 from dotenv import load_dotenv
+dag_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(dag_path)
+# from backend.dags.aggregated_data_model import CrimeByCategory
 from aggregated_data_model import CrimeByCategory
 
 
