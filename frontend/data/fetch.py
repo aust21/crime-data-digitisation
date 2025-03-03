@@ -5,7 +5,13 @@ from frontend.configuration import session
 
 def fetch_aggrigated_by_cat():
     session_obj = session()
-    query = "SELECT * FROM crime_by_category;"
+    query = """
+    SELECT crime_category,
+        COUNT(*) AS total_count
+    FROM crime_data
+    GROUP BY crime_category
+    ORDER BY total_count DESC;
+    """
     result = session_obj.execute(query)
     return result.fetchall()
 
