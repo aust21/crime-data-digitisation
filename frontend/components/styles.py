@@ -1,6 +1,9 @@
 import streamlit as st
 
 def apply_styles():
+    st.set_page_config(
+        page_title='Crime Data'
+        )
     page_bg_img = """
     <style>
     [data-testid="stAppViewContainer"] {

@@ -15,7 +15,7 @@ def fetch_aggrigated_by_cat():
     result = session_obj.execute(query)
     return result.fetchall()
 
-def fetch_highest_count(df):
+def fetch_highest_count():
     session_obj = session()
     query = """
         SELECT 
@@ -29,7 +29,7 @@ def fetch_highest_count(df):
     result = session_obj.execute(query)
     return result.fetchall()
 
-def fetch_min_count(df):
+def fetch_min_count():
     session_obj = session()
     query = """
             SELECT 
@@ -39,6 +39,19 @@ def fetch_min_count(df):
             FROM crime_data cd
             GROUP BY cd.crime_category, cd.geography
             ORDER BY crime_count ASC;
+            """
+    result = session_obj.execute(query)
+    return result.fetchall()
+
+def fetch_province_count():
+    session_obj = session()
+    query = """
+            SELECT 
+                cd.geography,
+                COUNT(*) AS total_occurence
+            FROM crime_data cd
+            GROUP BY cd.geography
+            ORDER BY cd.geography ASC;
             """
     result = session_obj.execute(query)
     return result.fetchall()
