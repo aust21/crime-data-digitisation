@@ -23,9 +23,8 @@ option = st.selectbox(
     "Select Aggregation",
     [
         "Original Stats",
+        "Crime Count",
         "Aggregated by category",
-        "Highest Crime Count",
-        "Lowest Crime Count",
         "Province Occurrence"
      ]
 )
@@ -35,10 +34,8 @@ if option == "Original Stats":
     df_result = original_file
 elif option == "Aggregated by category":
     df_result = fetch_aggrigated_by_cat()
-elif option == "Highest Crime Count":
+elif option == "Crime Count":
     df_result = fetch_highest_count()
-elif option == "Lowest Crime Count":
-    df_result = fetch_min_count()
 elif option == "Province Occurrence":
     df_result = fetch_province_count()
 
