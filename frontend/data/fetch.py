@@ -48,7 +48,7 @@ def fetch_province_count():
     query = """
             SELECT 
                 cd.geography,
-                COUNT(*) AS total_occurence
+                COUNT(*) AS total_occurrence
             FROM crime_data cd
             GROUP BY cd.geography
             ORDER BY cd.geography ASC;
