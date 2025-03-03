@@ -16,7 +16,29 @@ def fetch_aggrigated_by_cat():
     return result.fetchall()
 
 def fetch_highest_count(df):
-    return df.iloc[df["Count"].idxmax()]
+    session_obj = session()
+    query = """
+        SELECT 
+            cd.geography,
+            cd.crime_category,
+            MAX(crime_count) AS crime_count
+        FROM crime_data cd
+        GROUP BY cd.crime_category, cd.geography
+        ORDER BY crime_count DESC;
+        """
+    result = session_obj.execute(query)
+    return result.fetchall()
 
 def fetch_min_count(df):
-    return df.iloc[df["Count"].idxmin()]
+    session_obj = session()
+    query = """
+            SELECT 
+                cd.geography,
+                cd.crime_category,
+                MIN(crime_count) AS crime_count
+            FROM crime_data cd
+            GROUP BY cd.crime_category, cd.geography
+            ORDER BY crime_count ASC;
+            """
+    result = session_obj.execute(query)
+    return result.fetchall()
