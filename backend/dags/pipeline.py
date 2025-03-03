@@ -5,13 +5,16 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
+from airflow.models import Variable
 import pandas as pd
 from airflow.utils.log.logging_mixin import LoggingMixin
 from dotenv import load_dotenv
 dag_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(dag_path)
-# from backend.dags.aggregated_data_model import CrimeByCategory
+from pendulum import datetime, duration
 from aggregated_data_model import CrimeByCategory
+import redis
+from airflow.hooks.base import BaseHook
 
 
 load_dotenv()
@@ -22,7 +25,11 @@ logger = LoggingMixin().log
 
 default_args = {
     "owner":"crime-data",
-    "start_date":days_ago(1)
+    "start_date":days_ago(1),
+    "retries": 3,
+    "retry_delay": duration(seconds=2),
+    "retry_exponential_backoff": True,
+    "max_retry_delay": duration(hours=2),
 }
 
 with DAG(
@@ -53,6 +60,22 @@ with DAG(
 
 
     @task
+    def load_to_redis(file):
+        df = pd.read_csv(file)
+        conn = BaseHook.get_connection("redis")
+        try:
+            r = redis.Redis(host=conn.host, port=6379, decode_responses=True)
+
+            for indx, row in df.iterrows():
+                key = f"row:{indx}"
+                r.set(key, json.dumps(row.to_dict()))
+            logger.info("Data written to redis successfully")
+        except Exception as e:
+            logger.error(f"Something went wrong with Redis: {str(e)}",
+                         exc_info=True)
+
+
+    @task
     def transform(data_dir, file_name):
         true_path = os.path.join(data_dir, file_name)
         df = pd.read_csv(true_path)
@@ -63,13 +86,16 @@ with DAG(
     @task
     def load(data):
         conf = {
-            'host': os.getenv("MASTER_ENDPOINT"),
-            'port': os.getenv("MASTER_PORT"),
-            'database': os.getenv("MASTER_DBNAME"),
-            'user': os.getenv("MASTER_USERNAME"),
-            'password': os.getenv("MASTER_PASSWORD")
+            'host': Variable.get("MASTER_ENDPOINT", default_var=None),
+            'port': Variable.get("MASTER_PORT", default_var=None),
+            'database': Variable.get("MASTER_DBNAME", default_var=None),
+            'user': Variable.get("MASTER_USERNAME", default_var=None),
+            'password': Variable.get("MASTER_PASSWORD", default_var=None)
         }
-
+        logger.info(f"port: {conf['port']}, password: {conf['password']}, "
+                    f"database: {conf['database']}, user: {conf['user']}, "
+                    f"host: {conf['host']}")
+        logger.info(f"Direct retrieve {os.getenv('MASTER_PORT')}")
         try:
             engine = create_engine(
                 "postgresql://{user}:{password}@{host}:{port}/{database}".format(
@@ -94,11 +120,14 @@ with DAG(
             logger.error(f"Failed to create sqlachemy instance {e}",
                          exc_info=True)
 
+
     data_dir = "/usr/local/airflow/data"
     file_name = "crime_incidents_by_category.csv"
     extract_data(
         "crime-files-bucket",
         file_name, data_dir)
+
+    load_to_redis(os.path.join(data_dir, file_name))
 
     data = transform(data_dir, file_name)
     load(data)
