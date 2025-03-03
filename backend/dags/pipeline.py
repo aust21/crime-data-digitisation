@@ -71,30 +71,52 @@ with DAG(
     def load_to_redis(file):
         df = pd.read_csv(file)
         conn = BaseHook.get_connection("redis")
-        try:
-            r = redis.Redis(host=conn.host, port=6379, decode_responses=True)
 
-            for indx, row in df.iterrows():
-                key = f"row:{indx}"
-                r.set(key, json.dumps(row.to_dict()))
-            logger.info("Data written to redis successfully")
+        # for batch inserts
+        pool = redis.ConnectionPool(
+            host=conn.host, port=6379,
+            decode_responses=True
+            )
+        try:
+            r = redis.Redis(connection_pool=pool)
+
+            with r.pipeline() as pipe:
+                for indx, row in df.iterrows():
+                    key = f"row:{indx}"
+                    pipe.set(key, json.dumps(row.to_dict()))
+
+                # insert as a batch
+                pipe.execute()
         except Exception as e:
             logger.error(f"Something went wrong with Redis: {str(e)}",
                          exc_info=True)
+        finally:
+            # Clean up connection pool
+            pool.disconnect()
 
     @task
     def redis_to_postgres():
         conn = BaseHook.get_connection("redis")
-        try:
-            r = redis.Redis(host=conn.host, port=6379, decode_responses=True)
-            engine = create_engine(
-                "postgresql://{user}:{password}@{host}:{port}/{database}".format(
-                    **conf
-                )
+
+        pool = redis.ConnectionPool(
+            host=conn.host, port=6379, decode_responses=True
+        )
+        r = redis.Redis(connection_pool=pool)
+        engine = create_engine(
+            "postgresql://{user}:{password}@{host}:{port}/{database}".format(
+                **conf
             )
-            session = sessionmaker(bind=engine)
-            session_obj = session()
-            for key in r.keys():
+        )
+        session = sessionmaker(bind=engine)
+        session_obj = session()
+        try:
+
+            # batch inserts
+            batch_size = 50
+            rows_to_insert = []
+
+            # scan for efficient look
+            for key in r.scan_iter(match="row:*"):
                 row = json.loads(r.get(key))
                 geo = row.get("Geography")
                 if not geo:
@@ -105,14 +127,27 @@ with DAG(
                     financial_year = row["Financial Year"],
                     crime_count = row["Count"]
                 )
-                session_obj.add(data)
-            session_obj.commit()
+
+                rows_to_insert.append(data)
+
+                if len(rows_to_insert) >= batch_size:
+                    session_obj.bulk_save(rows_to_insert)
+                    session_obj.commit()
+                    rows_to_insert = []
+            if rows_to_insert:
+                session_obj.bulk_save(rows_to_insert)
+                session_obj.commit()
             logger.info("Data written to postgres from redis successfully")
         except Exception as e:
             logger.error(
                 f"Something went wrong with Redis to Postgres: {str(e)}",
                 exc_info=True
                 )
+        finally:
+            # Cleanup
+            session_obj.close()
+            engine.dispose()
+            pool.disconnect()
 
     @task
     def transform(data_dir, file_name):
