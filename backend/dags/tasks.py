@@ -15,10 +15,6 @@ logger = LoggingMixin().log
 
 conf = {
     'host': Variable.get("MASTER_ENDPOINT", default_var=None),
-    'port': Variable.get("MASTER_PORT", default_var=None),
-    'database': Variable.get("MASTER_DBNAME", default_var=None),
-    'user': Variable.get("MASTER_USERNAME", default_var=None),
-    'password': Variable.get("MASTER_PASSWORD", default_var=None)
 }
 
 
@@ -76,7 +72,8 @@ def redis_to_postgres():
         )
         r = redis.Redis(connection_pool=pool)
         engine = create_engine(
-            "postgresql://{user}:{password}@{host}:{port}/{database}".format(
+            "postgresql://avnadmin:{host}:13557/defaultdb?sslmode"
+            "=require".format(
                 **conf
             )
         )
@@ -130,10 +127,6 @@ def transform(data_dir, file_name):
 
 def load(data):
 
-    logger.info(f"port: {conf['port']}, password: {conf['password']}, "
-                f"database: {conf['database']}, user: {conf['user']}, "
-                f"host: {conf['host']}")
-    logger.info(f"Direct retrieve {os.getenv('MASTER_PORT')}")
     try:
         engine = create_engine(
             "postgresql://{user}:{password}@{host}:{port}/{database}".format(

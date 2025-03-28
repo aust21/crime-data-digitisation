@@ -15,14 +15,10 @@ original_file = pd.read_csv(filename)
 # Database Config
 conf = {
     'host': os.getenv("MASTER_ENDPOINT"),
-    'port': os.getenv("MASTER_PORT"),
-    'database': os.getenv("MASTER_DBNAME"),
-    'user': os.getenv("MASTER_USERNAME"),
-    'password': os.getenv("MASTER_PASSWORD")
 }
 
 engine = create_engine(
-    "postgresql://{user}:{password}@{host}:{port}/{database}".format(
+    "postgresql://avnadmin:{host}:13557/defaultdb?sslmode=require".format(
         **conf
     )
 )
