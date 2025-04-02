@@ -1,5 +1,5 @@
 import json, requests, os, sys
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import pandas as pd
@@ -16,6 +16,12 @@ logger = LoggingMixin().log
 conf = {
     'host': Variable.get("MASTER_ENDPOINT", default_var=None),
 }
+
+def generate_cache_key(row):
+    """Generate a unique key for each row based on important fields"""
+    return (f"crime:"
+            f"{row.get('Geography')}:{row.get('Financial Year')}"
+            f":{row.get('Crime Category')}")
 
 
 def extract_data(bucket_name, file_name, data_dir):
@@ -52,6 +58,7 @@ def load_to_redis(file):
         with r.pipeline() as pipe:
             for indx, row in df.iterrows():
                 key = f"row:{indx}"
+                # logger.info(f"processing row: {key}")
                 pipe.set(key, json.dumps(row.to_dict()))
 
             # insert as a batch
@@ -83,9 +90,23 @@ def redis_to_postgres():
         batch_size = 50
         rows_to_insert = []
 
+        #prefetch data from postgres
+        stmt = select(CrimeData)
+        results = session_obj.execute(stmt).fetchall()
+
+        for row_key in results:
+            row = row_key[0]
+            logger.info(f"row: {row}")
+            cache_key = f"crime:{row.geography}:{row.financial_year}:{row.crime_category}"
+            r.setex(cache_key, 3600, "1")
+
         # scan for efficient look
         for key in r.scan_iter(match="row:*"):
             row = json.loads(r.get(key))
+            cache_key = generate_cache_key(row)
+            if r.exists(cache_key):
+                logger.warning(f"Duplicate entry: {cache_key}")
+                continue
             geo = row.get("Geography")
             if not geo:
                 continue
@@ -129,10 +150,11 @@ def load(data):
 
     try:
         engine = create_engine(
-            "postgresql://{user}:{password}@{host}:{port}/{database}".format(
+            "postgresql://avnadmin:{host}:13557/defaultdb?sslmode"
+            "=require".format(
                 **conf
-                )
             )
+        )
         logger.info("SQLachemy connection successful")
 
         session = sessionmaker(bind=engine)

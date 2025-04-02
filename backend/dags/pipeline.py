@@ -57,18 +57,4 @@ with DAG(
         python_callable=tasks.redis_to_postgres
     )
 
-    task_4 = PythonOperator(
-        task_id="transform_data",
-        python_callable=tasks.transform,
-        op_args=["/usr/local/airflow/data", "crime_incidents_by_category.csv"],
-        provide_context=True  # Allows access to `kwargs`
-    )
-
-    task_5 = PythonOperator(
-        task_id="load_data",
-        python_callable=tasks.load_with_xcom,
-        provide_context=True
-    )
-
-
     task_1 >> task_2 >> task_3
